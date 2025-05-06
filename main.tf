@@ -198,19 +198,19 @@ resource "aws_instance" "Instancia_Linux_WebServer_Backend" {
 
 #Outputs
 #JumpServer
-output "Ip_Servidor" {
+output "Ip_JumpServer" {
   description = "ip publica del jump server"
   value = aws_instance.Instancia_Windows_JumpServer.public_ip
 }
 
 #FrontEnd
-output "Ip_Servidor" {
+output "Ip_Frontend" {
   description = "ip publica del frontend"
   value = aws_instance.Instancia_Linux_WebServer_Frontend.public_ip
 }
 
 #Backend 
-output "Ip_Servidor" {
+output "Ip_Backend" {
   description = "ip publica del backend"
   value = aws_instance.Instancia_Linux_WebServer_Backend.public_ip
 }
