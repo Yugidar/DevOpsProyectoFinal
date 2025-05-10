@@ -35,39 +35,20 @@
 
     <main class="container my-5">
         <div class="row text-center">
+            {% for game in games %}
             <div class="col-md-4">
                 <div class="card">
-                    <img src="https://via.placeholder.com/150" class="card-img-top" alt="Juego 1">
+                    <img src="https://via.placeholder.com/150" class="card-img-top" alt="{{ game.name }}">
                     <div class="card-body">
-                        <h5 class="card-title">Juego 1</h5>
-                        <p class="card-text">Descripción breve del juego 1.</p>
-                        <p class="text-success fw-bold">$49.99</p>
-                        <a href="#" class="btn btn-primary">Comprar</a>
+                        <h5 class="card-title">{{ game.name }}</h5>
+                        <p class="card-text">{{ game.description }}</p>
+                        <p class="text-success fw-bold">${{ game.price }}</p>
+                        <p class="text-muted">Stock: {{ game.stock }}</p>
+                        <a href="#" class="btn btn-primary" {% if game.stock == 0 %}disabled{% endif %}>Comprar</a>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <img src="https://via.placeholder.com/150" class="card-img-top" alt="Juego 2">
-                    <div class="card-body">
-                        <h5 class="card-title">Juego 2</h5>
-                        <p class="card-text">Descripción breve del juego 2.</p>
-                        <p class="text-success fw-bold">$59.99</p>
-                        <a href="#" class="btn btn-primary">Comprar</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <img src="https://via.placeholder.com/150" class="card-img-top" alt="Juego 3">
-                    <div class="card-body">
-                        <h5 class="card-title">Juego 3</h5>
-                        <p class="card-text">Descripción breve del juego 3.</p>
-                        <p class="text-success fw-bold">$39.99</p>
-                        <a href="#" class="btn btn-primary">Comprar</a>
-                    </div>
-                </div>
-            </div>
+            {% endfor %}
         </div>
     </main>
 
