@@ -156,10 +156,18 @@ def agregar_carrito():
                 cursor.execute("SELECT id FROM users WHERE username = %s", (session['username'],))
                 user = cursor.fetchone()
                 if user:
+                    # Insertar en el carrito
                     cursor.execute("""
                         INSERT INTO cart_items (user_id, nombre, precio)
                         VALUES (%s, %s, %s)
                     """, (user['id'], nombre, precio))
+
+                    # Reducir el stock del juego
+                    cursor.execute("""
+                        UPDATE games
+                        SET stock = stock - 1
+                        WHERE name = %s AND stock > 0
+                    """, (nombre,))
         finally:
             connection.close()
 
