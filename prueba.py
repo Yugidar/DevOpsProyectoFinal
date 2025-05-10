@@ -1,5 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
-from flask import session
+from flask import Flask, render_template, request, redirect, url_for, session
 import pymysql
 from pymysql.cursors import DictCursor
 
@@ -86,11 +85,125 @@ def admin():
         with connection.cursor() as cursor:
             cursor.execute("SELECT * FROM games")
             games = cursor.fetchall()
-        return render_template('admin.html', games=games)
+
+        return render_template('/admin/juegos.html', games=games, role=session.get('role'))
     except Exception as e:
         return f"Ocurrió un error: {e}"
     finally:
         connection.close()
+
+@app.route('/carrito')
+def carrito():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    connection = get_db_connection()
+    carrito = []
+    total = 0
+
+    if connection:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id FROM users WHERE username = %s", (session['username'],))
+                user = cursor.fetchone()
+                if user:
+                    cursor.execute("""
+                        SELECT nombre, precio FROM cart_items
+                        WHERE user_id = %s
+                    """, (user['id'],))
+                    carrito = cursor.fetchall()
+                    total = sum(item['precio'] for item in carrito)
+        finally:
+            connection.close()
+
+    return render_template('carrito.html', carrito=carrito, total=total, role=session.get('role'))
+
+@app.route('/eliminar_item', methods=['POST'])
+def eliminar_item():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    nombre = request.form['nombre']
+    connection = get_db_connection()
+
+    if connection:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id FROM users WHERE username = %s", (session['username'],))
+                user = cursor.fetchone()
+                if user:
+                    cursor.execute("""
+                        DELETE FROM cart_items
+                        WHERE user_id = %s AND nombre = %s
+                        LIMIT 1
+                    """, (user['id'], nombre))  # solo elimina uno si hay duplicados
+        finally:
+            connection.close()
+    return redirect('/carrito')
+
+@app.route('/agregar_carrito', methods=['POST'])
+def agregar_carrito():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    nombre = request.form['nombre']
+    precio = float(request.form['precio'])
+
+    connection = get_db_connection()
+    if connection:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id FROM users WHERE username = %s", (session['username'],))
+                user = cursor.fetchone()
+                if user:
+                    cursor.execute("""
+                        INSERT INTO cart_items (user_id, nombre, precio)
+                        VALUES (%s, %s, %s)
+                    """, (user['id'], nombre, precio))
+        finally:
+            connection.close()
+
+    return redirect('/index')
+
+@app.route('/comprar', methods=['POST'])
+def comprar():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    connection = get_db_connection()
+    if connection:
+        try:
+            with connection.cursor() as cursor:
+                # 1. Obtener ID del usuario
+                cursor.execute("SELECT id FROM users WHERE username = %s", (session['username'],))
+                user = cursor.fetchone()
+
+                if user:
+                    user_id = user['id']
+
+                    # 2. Obtener items del carrito del usuario
+                    cursor.execute("""
+                        SELECT nombre FROM cart_items
+                        WHERE user_id = %s
+                    """, (user_id,))
+                    items = cursor.fetchall()
+
+                    # 3. Actualizar el stock de cada juego
+                    for item in items:
+                        juego_nombre = item['nombre']
+                        # Verificar que haya stock antes de descontar
+                        cursor.execute("""
+                            UPDATE games
+                            SET stock = stock - 1
+                            WHERE name = %s AND stock > 0
+                        """, (juego_nombre,))
+
+                    # 4. Vaciar el carrito
+                    cursor.execute("DELETE FROM cart_items WHERE user_id = %s", (user_id,))
+        finally:
+            connection.close()
+
+    return render_template('compra_exitosa.html')
 
 
 @app.route('/register', methods=['GET', 'POST'])
