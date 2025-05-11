@@ -42,6 +42,11 @@
     </header>
 
     <main class="container my-5">
+        {% if error %}
+        <div class="alert alert-danger text-center">
+            {{ error }}
+        </div>
+        {% endif %}
         <div class="row text-center">
             {% for game in games %}
             <div class="col-md-4 mb-4">

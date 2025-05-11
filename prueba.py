@@ -156,22 +156,45 @@ def agregar_carrito():
                 cursor.execute("SELECT id FROM users WHERE username = %s", (session['username'],))
                 user = cursor.fetchone()
                 if user:
-                    # Insertar en el carrito
-                    cursor.execute("""
-                        INSERT INTO cart_items (user_id, nombre, precio)
-                        VALUES (%s, %s, %s)
-                    """, (user['id'], nombre, precio))
+                    # Verificar el stock del juego
+                    cursor.execute("SELECT stock FROM games WHERE name = %s", (nombre,))
+                    game = cursor.fetchone()
+                    if game:
+                        # Verificar la cantidad en el carrito
+                        cursor.execute("""
+                            SELECT COUNT(*) AS cantidad_en_carrito
+                            FROM cart_items
+                            WHERE user_id = %s AND nombre = %s
+                        """, (user['id'], nombre))
+                        cantidad_en_carrito = cursor.fetchone()['cantidad_en_carrito']
 
-                    # Reducir el stock del juego
-                    cursor.execute("""
-                        UPDATE games
-                        SET stock = stock - 1
-                        WHERE name = %s AND stock > 0
-                    """, (nombre,))
+                        if cantidad_en_carrito < game['stock']:
+                            # Insertar en el carrito si no excede el stock
+                            cursor.execute("""
+                                INSERT INTO cart_items (user_id, nombre, precio)
+                                VALUES (%s, %s, %s)
+                            """, (user['id'], nombre, precio))
+                        else:
+                            # Mostrar mensaje si se excede el stock
+                            return render_template('index.html', games=get_games(), role=session.get('role'), error=f"No hay más stock disponible para {nombre}.")
+                    else:
+                        return render_template('index.html', games=get_games(), role=session.get('role'), error=f"El juego {nombre} no existe.")
         finally:
             connection.close()
 
     return redirect('/index')
+
+def get_games():
+    """Helper function to fetch games from the database."""
+    connection = get_db_connection()
+    if connection:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT name, description, price, stock FROM games")
+                return cursor.fetchall()
+        finally:
+            connection.close()
+    return []
 
 @app.route('/comprar', methods=['POST'])
 def comprar():
