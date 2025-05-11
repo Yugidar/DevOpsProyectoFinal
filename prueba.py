@@ -82,7 +82,7 @@ def admin():
         return redirect(url_for('login'))
 
     try:
-        # Get games from the database
+      
         with connection.cursor() as cursor:
             cursor.execute("SELECT * FROM games")
             games = cursor.fetchall()
@@ -344,4 +344,4 @@ def home():
 
 if __name__ == '__main__':
     print("La aplicación está abierta. Visita http://127.0.0.1:5000 en tu navegador.")
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

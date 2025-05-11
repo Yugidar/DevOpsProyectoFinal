@@ -57,7 +57,7 @@
                         <p class="card-text">{{ game.description }}</p>
                         <p class="text-success fw-bold">${{ game.price }}</p>
                         <p class="text-muted">Stock: {{ game.stock }}</p>
-                        <form method="POST" action="/agregar_carrito" class="mt-auto">
+                        <form method="POST" action="http://<IP_BACKEND>:5000/agregar_carrito" class="mt-auto">
                             <input type="hidden" name="nombre" value="{{ game.name }}">
                             <input type="hidden" name="precio" value="{{ game.price }}">
                             <button type="submit" class="btn btn-primary w-100" {% if game.stock == 0 %}disabled{% endif %}>
