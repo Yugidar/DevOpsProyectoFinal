@@ -231,7 +231,7 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
+        numero = request.form['numero']
         connection = get_db_connection()
         if connection is None:
             return "No se pudo conectar a la base de datos. Intenta más tarde."
@@ -241,7 +241,7 @@ def register():
                 cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
                 if cursor.fetchone():
                     return "El usuario ya existe. Intenta con otro nombre de usuario."
-                cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
+                cursor.execute("INSERT INTO users (username, password, numero) VALUES (%s, %s, %s)", (username, password, numero))
             return redirect(url_for('login'))
         except Exception as e:
             return f"Ocurrió un error: {e}"
