@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import pymysql
 from pymysql.cursors import DictCursor
-import requests  # Importar requests para realizar solicitudes HTTP
+import requests
 
 app = Flask(__name__)
 
-app.secret_key = 'una_clave_secreta'  # Añade esto si aún no lo tienes
+app.secret_key = 'Charizard'
 
 def get_db_connection():
     try:
@@ -82,7 +82,6 @@ def admin():
         return redirect(url_for('login'))
 
     try:
-      
         with connection.cursor() as cursor:
             cursor.execute("SELECT * FROM games")
             games = cursor.fetchall()
@@ -137,7 +136,7 @@ def eliminar_item():
                         DELETE FROM cart_items
                         WHERE user_id = %s AND nombre = %s
                         LIMIT 1
-                    """, (user['id'], nombre))  # solo elimina uno si hay duplicados
+                    """, (user['id'], nombre))
         finally:
             connection.close()
     return redirect('/carrito')
@@ -157,11 +156,9 @@ def agregar_carrito():
                 cursor.execute("SELECT id FROM users WHERE username = %s", (session['username'],))
                 user = cursor.fetchone()
                 if user:
-                    # Verificar el stock del juego
                     cursor.execute("SELECT stock FROM games WHERE name = %s", (nombre,))
                     game = cursor.fetchone()
                     if game:
-                        # Verificar la cantidad en el carrito
                         cursor.execute("""
                             SELECT COUNT(*) AS cantidad_en_carrito
                             FROM cart_items
@@ -170,13 +167,11 @@ def agregar_carrito():
                         cantidad_en_carrito = cursor.fetchone()['cantidad_en_carrito']
 
                         if cantidad_en_carrito < game['stock']:
-                            # Insertar en el carrito si no excede el stock
                             cursor.execute("""
                                 INSERT INTO cart_items (user_id, nombre, precio)
                                 VALUES (%s, %s, %s)
                             """, (user['id'], nombre, precio))
                         else:
-                            # Mostrar mensaje si se excede el stock
                             return render_template('index.html', games=get_games(), role=session.get('role'), error=f"No hay más stock disponible para {nombre}.")
                     else:
                         return render_template('index.html', games=get_games(), role=session.get('role'), error=f"El juego {nombre} no existe.")
@@ -206,31 +201,24 @@ def comprar():
     if connection:
         try:
             with connection.cursor() as cursor:
-                # 1. Obtener ID del usuario
                 cursor.execute("SELECT id FROM users WHERE username = %s", (session['username'],))
                 user = cursor.fetchone()
 
                 if user:
                     user_id = user['id']
-
-                    # 2. Obtener items del carrito del usuario
                     cursor.execute("""
                         SELECT nombre FROM cart_items
                         WHERE user_id = %s
                     """, (user_id,))
                     items = cursor.fetchall()
 
-                    # 3. Actualizar el stock de cada juego
                     for item in items:
                         juego_nombre = item['nombre']
-                        # Verificar que haya stock antes de descontar
                         cursor.execute("""
                             UPDATE games
                             SET stock = stock - 1
                             WHERE name = %s AND stock > 0
                         """, (juego_nombre,))
-
-                    # 4. Vaciar el carrito
                     cursor.execute("DELETE FROM cart_items WHERE user_id = %s", (user_id,))
         finally:
             connection.close()
@@ -277,7 +265,7 @@ def login():
                 user = cursor.fetchone()
             if user:
                 session['username'] = user['username']
-                session['role'] = user.get('role', 'user')  # Si no tiene rol, asigna 'user'
+                session['role'] = user.get('role', 'user')
                 return redirect(url_for('index'))
             else:
                 return "Credenciales incorrectas. Intenta de nuevo."
@@ -301,41 +289,36 @@ def index():
             cursor.execute("SELECT name, description, price, stock FROM games")
             games = cursor.fetchall()
 
-            # Buscar imágenes relacionadas con los nombres de los juegos usando Bing Image Search
             for game in games:
                 query = f"{game['name']} game"
                 api_url = f"https://www.bing.com/images/search?q={query}&form=HDRSC2"
-                print(f"Consultando Bing Image Search con URL: {api_url}")  # Mensaje para verificar la URL
+                print(f"Consultando Bing Image Search con URL: {api_url}")
                 response = requests.get(api_url)
                 if response.status_code == 200:
-                    # Extraer imágenes relevantes de los resultados de Bing
                     from bs4 import BeautifulSoup
                     soup = BeautifulSoup(response.text, 'html.parser')
-                    image_tags = soup.find_all('img', {'class': 'mimg'})  # Seleccionar imágenes relevantes
+                    image_tags = soup.find_all('img', {'class': 'mimg'})
                     if image_tags:
                         # Usar la primera imagen relevante
                         game['image'] = image_tags[0]['src'] if 'src' in image_tags[0].attrs else 'https://via.placeholder.com/150'
-                        print(f"Imagen obtenida para '{game['name']}': {game['image']}")  # Mensaje de éxito
+                        print(f"Imagen obtenida para '{game['name']}': {game['image']}")
                     else:
-                        game['image'] = 'https://via.placeholder.com/150'  # Placeholder si no hay resultados
+                        game['image'] = 'https://via.placeholder.com/150'
                         print(f"No se encontraron imágenes para '{game['name']}'. Usando placeholder.")
                 else:
-                    game['image'] = 'https://via.placeholder.com/150'  # Placeholder en caso de error
+                    game['image'] = 'https://via.placeholder.com/150'
                     print(f"Error al consultar Bing para '{game['name']}': {response.status_code}")
     except Exception as e:
         print(f"Error al procesar los juegos: {e}")
         return f"Ocurrió un error al obtener los juegos: {e}"
     finally:
         connection.close()
-
-    # Se pasa el rol almacenado en la sesión para usarlo en el template
     return render_template('index.html', games=games, role=session.get('role'))
 
 @app.route('/logout')
 def logout():
     session.pop('username', None)
     session.pop('role', None)
-
     return redirect(url_for('login'))
 
 @app.route('/')
